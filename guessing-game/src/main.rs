@@ -20,10 +20,15 @@ fn main() {
             .read_line(&mut guess)
             .expect("Failed to read line!");
 
-        let guess: u32 = match guess.trim().parse() {
+        let guess: i32 = match guess.trim().parse() {
             Ok(num) => num,
             Err(_) => continue,
         };
+
+        if guess < 1 || guess > 100 {
+            println!("The secret number will be between 1 and 100");
+            continue;
+        }
 
         println!("You guessed: {}", guess);
 
@@ -37,3 +42,25 @@ fn main() {
         }
     }
 }
+
+// another way to validate the guess would be to wrap it in a struct like this
+
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {}.", value);
+        }
+        Guess { value }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+
+// a function can safely take or return Guess rather than i32 with no need to do any validation in its body
+// because the only way to create a Guess it through the 'new' function, which already validates the input
