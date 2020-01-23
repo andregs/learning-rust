@@ -64,3 +64,28 @@ impl Guess {
 
 // a function can safely take or return Guess rather than i32 with no need to do any validation in its body
 // because the only way to create a Guess it through the 'new' function, which already validates the input
+
+
+// unit tests have to go in the same file as the code under testing
+#[cfg(test)] // compile and run only when we run "cargo test"
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_valid() {
+        let g: Guess = Guess::new(5);
+        assert_eq!(5, g.value);
+    }
+
+    #[test]
+    #[should_panic(expected = "must be between 1 and 100")]
+    fn new_valid_lt_1_should_panic() {
+        Guess::new(0);
+    }
+
+    #[test]
+    #[should_panic(expected = "must be between 1 and 100")]
+    fn new_valid_gt_100_should_panic() {
+        Guess::new(101);
+    }
+}
