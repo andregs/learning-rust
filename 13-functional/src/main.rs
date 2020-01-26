@@ -1,5 +1,3 @@
-// TODO https://doc.rust-lang.org/book/ch13-02-iterators.html
-
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::fmt::Debug;

@@ -1,6 +1,4 @@
 
-// TODO parei em lifetimes https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html
-
 fn main() {
     let number_list = vec![12, 85, 43, 77, 99, 11];
 
