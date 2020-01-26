@@ -10,15 +10,23 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args : &[String]) -> Result<Config, &str> {
-        if args.len() < 3 {
-            return Err("Not enough arguments.");
-        }
 
-        // cloning is a bit inefficient, but we don't have to manage lifetimes of the references
-        // we'll learn a more efficient method later
-        let query = args[1].clone();
-        let filename = args[2].clone();
+    // in previous version of this code we didn't have ownership of "args", but now we do
+    pub fn new<I>(mut args: I) -> Result<Config, &'static str> 
+        where I: Iterator<Item = String>
+    {
+        args.next(); // discard 1st (the app bin path)
+        
+        // in this version we can return Config with owned values without cloning
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Expected: query string."),
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Expected: filename."),
+        };
         
         let case_sensitive = env::var("CASE_SENSITIVE").is_err();
     
@@ -45,26 +53,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 // returns parts of "contents" that matches the "query", so the returned references
 // must live as long as "contents"
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-    
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents.lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn isearch<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase();
-    let mut results = Vec::new();
-    
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents.lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }

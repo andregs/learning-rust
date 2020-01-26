@@ -33,20 +33,20 @@ Trust me.";
 
 #[test]
 fn new_config_ok() {
-    let args: Vec<String> = ["/minigrep", "query", "contents"]
-        .iter().map(|&s| s.into()).collect();
-    let cfg = Config::new(&args).unwrap();
+    let args = ["/minigrep", "query", "contents"]
+        .iter().map(|s| s.to_string());
+    let cfg = Config::new(args).unwrap();
     assert_eq!(cfg.query, "query");
     assert_eq!(cfg.filename, "contents");
 }
 
 #[test]
-#[should_panic(expected = "Not enough arguments")]
+#[should_panic(expected = "Expected: filename")]
 fn new_config_fail() {
-    let args: Vec<String> = ["query", "contents"]
-        .iter().map(|&s| s.into()).collect();
-    let cfg = Config::new(&args);
-    panic!("It should have panicked! {:?}", cfg);
+    let args = ["query", "contents"]
+        .iter().map(|s| s.to_string());
+    Config::new(args).unwrap();
+    panic!("It should have panicked!");
 }
 
 // TODO how to test "run" function mocking out "search" function?
