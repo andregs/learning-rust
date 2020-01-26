@@ -1,0 +1,20 @@
+# This directory and toml file were manually created.
+# Then, I executed the following commands to add the members into the workspace:
+# cargo new adder --vcs none
+# cargo new add-one --lib --vcs none
+# cargo new add-two --lib --vcs none
+
+# In order to build: "cargo build" from this directory
+# In order to run: "cargo run -p adder" (or whatever package in workspace you want to run)
+# "cargo test" in this directory will execute tests in all dirs
+# "cargo test -p add-one" to test only one package
+
+[workspace]
+
+members = [
+    "adder",
+    "add-one",
+    "add-two",
+]
+
+# See also adder/Cargo.toml
