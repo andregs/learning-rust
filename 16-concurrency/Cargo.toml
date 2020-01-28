@@ -1,0 +1,10 @@
+[workspace]
+
+members = [
+    "messaging",
+    "shared-state"
+]
+
+# Run with:
+# cargo run --bin messaging
+# cargo run --bin shared-state
