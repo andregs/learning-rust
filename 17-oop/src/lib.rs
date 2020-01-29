@@ -62,90 +62,50 @@ impl Draw for TextField {
 }
 
 pub struct Post {
-    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+pub struct DraftPost {
     content: String,
 }
 
 impl Post {
-    pub fn new() -> Post {
-        Post {
-            state: Some(Box::new(Draft {})),
+    pub fn new() -> DraftPost {
+        DraftPost {
             content: String::new(),
         }
     }
 
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+}
+
+impl DraftPost {
     pub fn add_text(&mut self, text: &str) {
         self.content.push_str(text);
     }
 
-    // content of a post is whatever the current state says it is.
-    // as_ref because we want a reference to the value inside the Option, i.e. Option<&Box<dyn State>>
-    // we can unwrap without panic because we know Post methods always finish with Some value in self.state
-    pub fn content(&self) -> &str {
-        self.state.as_ref().unwrap().content(self)
-    }
-
-    // this public 'request_review' calls a private 'request_review' from State,
-    // that consumes the current State and returns a new one
-    pub fn request_review(&mut self) {
-        if let Some(s) = self.state.take() {
-            self.state = Some(s.request_review())
-        }
-    }
-
-    // state of a Post when approved is whatever the current state says it is when that state is approved
-    pub fn approve(&mut self) {
-        if let Some(s) = self.state.take() {
-            self.state = Some(s.approve())
+    // moves self to the new instance, so we cannot keep using draft after review is requested
+    pub fn request_review(self) -> PendingReviewPost {
+        PendingReviewPost {
+            content: self.content
         }
     }
 }
 
-trait State {
-    fn request_review(self: Box<Self>) -> Box<dyn State>;
-    fn approve(self: Box<Self>) -> Box<dyn State>;
-    fn content<'a>(&self, _post: &'a Post) -> &'a str {
-        ""
-    }
+pub struct PendingReviewPost {
+    content: String,
 }
 
-struct Draft {}
+impl PendingReviewPost {
 
-impl State for Draft {
-    fn request_review(self: Box<Self>) -> Box<dyn State> {
-        Box::new(PendingReview {})
-    }
-    
-    fn approve(self: Box<Self>) -> Box<dyn State> {
-        self
-    }
-}
-
-struct PendingReview {}
-
-impl State for PendingReview {
-    fn request_review(self: Box<Self>) -> Box<dyn State> {
-        self
-    }
-
-    fn approve(self: Box<Self>) -> Box<dyn State> {
-        Box::new(Published {})
-    }
-}
-
-struct Published {}
-
-impl State for Published {
-    fn request_review(self: Box<Self>) -> Box<dyn State> {
-        self
-    }
-
-    fn approve(self: Box<Self>) -> Box<dyn State> {
-        self
-    }
-
-    fn content<'a>(&self, post: &'a Post) -> &'a str {
-        &post.content
+    // moves self to the new instance, like request_review method did
+    pub fn approve(self) -> Post {
+        Post {
+            content: self.content
+        }
     }
 }
 
@@ -179,12 +139,15 @@ mod tests {
         let mut post = Post::new();
 
         post.add_text("I ate a salad for lunch today");
-        assert_eq!("", post.content());
+        // assert_eq!("", post.content()); // content method does not exist in DraftPost
         
-        post.request_review();
-        assert_eq!("", post.content());
+        let post = post.request_review();
+        // post = post.request_review(); // does not compile because previous var is DraftPost
+        // assert_eq!("", post.content()); // content method does not exist in PendingReviewPost
         
-        post.approve();
+        let post = post.approve();
+        // post = post.approve(); // does not compile because previous var is PendingReviewPost
+        
         assert_eq!("I ate a salad for lunch today", post.content());
     }
 }
