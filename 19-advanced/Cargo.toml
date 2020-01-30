@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "unsafe-rust"
+]
+
+# Run with:
+# cargo run --bin unsafe-rust
