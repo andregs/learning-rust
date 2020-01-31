@@ -3,8 +3,10 @@
 members = [
     "unsafe-rust",
     "traits",
+    "types",
 ]
 
 # Run with:
 # cargo run --bin unsafe-rust
 # cargo run --bin traits
+# cargo run --bin types
