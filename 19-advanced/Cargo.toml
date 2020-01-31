@@ -1,8 +1,10 @@
 [workspace]
 
 members = [
-    "unsafe-rust"
+    "unsafe-rust",
+    "traits",
 ]
 
 # Run with:
 # cargo run --bin unsafe-rust
+# cargo run --bin traits
