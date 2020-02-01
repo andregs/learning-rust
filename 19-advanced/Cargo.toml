@@ -4,9 +4,13 @@ members = [
     "unsafe-rust",
     "traits",
     "types",
+    "macros",
+    "hello_macro",
+    "hello_macro/hello_macro_derive",
 ]
 
 # Run with:
 # cargo run --bin unsafe-rust
 # cargo run --bin traits
 # cargo run --bin types
+# cargo run --bin macros
