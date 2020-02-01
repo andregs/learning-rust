@@ -1,6 +1,7 @@
 // building a single-threaded web server
 
-use std::io::prelude::*; // r/w streams
+use std::fs;
+use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 
 fn main() {
@@ -14,7 +15,7 @@ fn main() {
         handle_connection(stream);
     }
 
-    // we already can "cargo run" and browse to http://127.0.0.1:7878
+    // now execute "cargo run" and browse to http://127.0.0.1:7878
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -24,8 +25,17 @@ fn handle_connection(mut stream: TcpStream) {
     // to debug request details
     // println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
 
-    // two blank lines for headers and body
-    let response = "HTTP/1.1 204 No Content\r\n\r\n";
+    let get = b"GET / HTTP/1.1\r\n"; // byte string syntax
+
+    let (status, filename) = if buffer.starts_with(get) {
+        ("200 OK", "hello.html")
+    } else {
+        ("400 BAD REQUEST", "400.html")
+    };
+    
+    let body = fs::read_to_string(filename).unwrap();
+    let response = format!("HTTP/1.1 {}\r\n\r\n{}", status, body);
+    
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
