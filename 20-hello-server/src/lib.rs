@@ -1,8 +1,8 @@
-use std::sync::{{ Arc, Mutex, mpsc }};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
 pub struct ThreadPool {
-    sender: mpsc::Sender<Job>,
+    sender: mpsc::Sender<Message>,
     workers: Vec<Worker>,
 }
 
@@ -23,7 +23,6 @@ impl ThreadPool {
         // Arc: multiple workers own the receiver
         // Mutex: only one worker gets a job from the receiver at a time
         let receiver = Arc::new(Mutex::new(receiver));
-        
         let mut workers = Vec::with_capacity(size);
 
         for id in 0..size {
@@ -41,18 +40,54 @@ impl ThreadPool {
         // Send to transfer the given closure from one thread to another
         // 'static because we don't know how long the thread will take to execute
         let job = Box::new(func);
-        self.sender.send(job).unwrap();
+        let msg = Message::NewJob(job);
+        self.sender.send(msg).unwrap();
     }
+}
+
+/// when the pool is dropped, main thread join all workers to make sure they finish their work.
+/// TODO make this graceful shutdown be called when we ctrl+c to kill the app.
+/// currently we can test this by taking only a few tcp messages in "fn main()" loop
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        println!("Sending terminate message to all workers.");
+        
+        for _ in &mut self.workers {
+            // it's no broadcast. Each worker get a message
+            self.sender.send(Message::Terminate).unwrap();
+        }
+
+        println!("Shutting down all workers.");
+
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            // we use 'take' to move the thread out of the Option, leaving None in the worker
+            if let Some(thread) = worker.thread.take() {
+                // this blocks untill worker finishes its job, then the worker will get a
+                // Terminate signal that breaks its infinite loop (see Worker::new)
+                thread.join().unwrap();
+            }
+        }
+    }
+}
+
+/// ThreadPool sends one of these messages to its workers
+enum Message {
+    /// job to be executed
+    NewJob(Job),
+    /// signal worker to stop listening and exit its infinite loop
+    Terminate,
 }
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
 struct Worker {
     id: usize, // that's the recommended type for indexing collections
-    thread: thread::JoinHandle<()>,
+    thread: Option<thread::JoinHandle<()>>,
 }
 
-type Receiver = Arc<Mutex<mpsc::Receiver<Job>>>;
+type Receiver = Arc<Mutex<mpsc::Receiver<Message>>>;
 
 impl Worker {
     fn new(id: usize, receiver: Receiver) -> Worker {
@@ -60,16 +95,23 @@ impl Worker {
             loop {
                 // receiving a message is synchronized, thanks to Mutex, but
                 // executing the job is parallel
-                let job = receiver.lock().unwrap().recv().unwrap();
-                println!("Worker {} executing a job.", id);
-                job();
+                let message = receiver.lock().unwrap().recv().unwrap();
+                match message {
+                    Message::NewJob(job) => {
+                        println!("Worker {} executing a job.", id);
+                        job();
+                    },
+                    Message::Terminate => {
+                        println!("Worker {} got terminate signal.", id);
+                        break; // the outer loop
+                    },
+                }
             }
         });
 
-        Worker { id, thread }
+        Worker {
+            id,
+            thread: Some(thread),
+        }
     }
 }
-
-// this code isn't ideal, the compilation warnings saying we're not using 'workers', 'id' and 
-// 'thread' fields suggest that we're not cleaning up anything. when we ctrl+c to stop the server,
-// we kill all threads.
