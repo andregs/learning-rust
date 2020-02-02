@@ -1,5 +1,5 @@
 [package]
-name = "hello-server"
+name = "hello_server"
 version = "0.1.0"
 authors = ["André Silva <andregs@users.noreply.github.com>"]
 edition = "2018"

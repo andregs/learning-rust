@@ -1,21 +1,29 @@
-// building a single-threaded web server
+// building a multi-threaded web server
+// note this file is under src/bin/main.rs and we also have src/lib.rs
+// that means the primary create in our dir is the library
 
 use std::fs;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
+use std::thread;
+use std::time::Duration;
+
+use hello_server::ThreadPool;
 
 fn main() {
-    // binding might fail, so it returns a Result<T, E>
     let listener =  TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
 
-    // a single stream represents one connection attempt between client & server
     for stream in listener.incoming() {
-        // connection might fail due to OS reasons, like exceeding max connections
         let stream = stream.unwrap();
-        handle_connection(stream);
+
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
 
-    // now execute "cargo run" and browse to http://127.0.0.1:7878
+    // now execute "cargo run" and browse to http://127.0.0.1:7878 to get a page quickly
+    // now execute "cargo run" and browse to http://127.0.0.1:7878/sleep to get a page after some seconds
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -25,9 +33,13 @@ fn handle_connection(mut stream: TcpStream) {
     // to debug request details
     // println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
 
-    let get = b"GET / HTTP/1.1\r\n"; // byte string syntax
+    let get = b"GET / HTTP/1.1\r\n";
+    let sleep = b"GET /sleep HTTP/1.1\r\n";
 
     let (status, filename) = if buffer.starts_with(get) {
+        ("200 OK", "hello.html")
+    } else if buffer.starts_with(sleep) {
+        thread::sleep(Duration::from_secs(5));
         ("200 OK", "hello.html")
     } else {
         ("400 BAD REQUEST", "400.html")
